@@ -1,6 +1,4 @@
-class ExecArgs{
-    [string] $folderPath
-}
+
 class CommandNode{
     [hashtable] $m_commandChildren
     [String] $m_commandNodeName
@@ -16,9 +14,7 @@ class CommandNode{
     RegisterCommand([String] $commandNodeName){
         $this.m_commandChildren[$commandNodeName]=[CommandFactory]::Create($commandNodeName)
     }
-    Exec([ExecArgs]$arg){
-        throw "no Exec"
-    }
+
 
 }
 class CommandFactory{
@@ -40,8 +36,7 @@ class CommandFactory{
 class CommandOpen : CommandNode{
     CommandOpen() : base ("open"){
     }
-    Exec([ExecArgs]$arg){
-        $folderPath=$arg.folderPath
+    Exec([String]$folderPath){
         $targetFiles=Get-ChildItem -Path $folderPath -File | Where-Object{$_.Name -Like "*.lnk"}
         ForEach ($file In $targetFiles){
             Start-Process $file.FullName
@@ -95,6 +90,4 @@ function GetCommandNode([CommandNode]$cmdRoot,[String]$command){#Œë‚Á‚½ƒRƒ}ƒ“ƒh‘
 
 $cmdRoot=CommandInit
 $targetNode=GetCommandNode $cmdRoot "wa files open"
-$ea = [ExecArgs]::new()
-$ea.folderPath="C:\temp"
-$targetNode.Exec($ea)
+$targetNode.Exec("C:\temp")
