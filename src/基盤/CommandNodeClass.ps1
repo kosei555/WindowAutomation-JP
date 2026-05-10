@@ -1,4 +1,10 @@
+class CommndNodeCommonConfig{
+    static [String]$ROOT_CMD_NAME
+    static SetConfig(){
+        [CommndNodeCommonConfig]::ROOT_CMD_NAME="wa"
 
+    }
+}
 class CommandNode{
     [hashtable] $m_commandChildren
     [String] $m_commandNodeName
@@ -53,7 +59,7 @@ class CommandClose : CommandNode{
 }
 
 function CommandInit(){#è´óàìIÇ…ÇÕJSONÉtÉ@ÉCÉãì«Ç›çûÇ‹ÇπÇÈ
-    $cmd = [CommandNode]::new("wa")
+    $cmd = [CommandNode]::new([CommndNodeCommonConfig]::ROOT_CMD_NAME)
     $cmd.RegisterCommand("files")
     $cmd.GetChild("files").RegisterCommand("open")
     return $cmd
@@ -77,7 +83,7 @@ function GetCommandNode([CommandNode]$cmdRoot,[String]$command){#åÎÇ¡ÇΩÉRÉ}ÉìÉhë
     $queue.Enqueue($strBuf)
     while($queue.Count -gt 0){
         $queContent=$queue.Dequeue()
-        if($queContent -eq "wa"){
+        if($queContent -eq [CommndNodeCommonConfig]::ROOT_CMD_NAME){
             $cmdNode=$cmdRoot
 
         }
