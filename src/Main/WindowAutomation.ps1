@@ -1,3 +1,6 @@
+class ExecArgs{
+    [string] $folderPath
+}
 class CommandNode{
     [hashtable] $m_commandChildren
     [String] $m_commandNodeName
@@ -13,6 +16,9 @@ class CommandNode{
     RegisterCommand([String] $commandNodeName){
         $this.m_commandChildren[$commandNodeName]=[CommandFactory]::Create($commandNodeName)
     }
+    Exec([ExecArgs]$arg){
+        throw "no Exec"
+    }
 
 }
 class CommandFactory{
@@ -24,17 +30,21 @@ class CommandFactory{
             "close"{
                 return [CommandClose]::new()
             }
+            default{
+                return [CommandNode]::new($commandNodeName)
+            }
         }
-        return [CommandNode]::new()
+        throw "error in CommandFactory.Create"
     }
 }
 class CommandOpen : CommandNode{
     CommandOpen() : base ("open"){
     }
-    Exec([String]$folderPath){
+    Exec([ExecArgs]$arg){
+        $folderPath=$arg.folderPath
         $targetFiles=Get-ChildItem -Path $folderPath -File | Where-Object{$_.Name -Like "*.lnk"}
         ForEach ($file In $targetFiles){
-            start-Proces $file.FullName
+            Start-Process $file.FullName
         }
 
     }
@@ -47,9 +57,44 @@ class CommandClose : CommandNode{
     }
 }
 
-function CommandLoad(){#将来的にはJSONファイル読み込ませる
+function CommandInit(){#将来的にはJSONファイル読み込ませる
     $cmd = [CommandNode]::new("wa")
     $cmd.RegisterCommand("files")
     $cmd.GetChild("files").RegisterCommand("open")
-
+    return $cmd
 }
+
+function GetCommandNode([CommandNode]$cmdRoot,[String]$command){#誤ったコマンド打ち込んだ時の処理を追加する必要性あり
+    $queue = New-Object System.Collections.Queue
+    $strBuf=""
+    $cmdNode=$null
+    $ea = [ExecArgs]::new()
+
+    For ($i=0;$i -lt $command.Length;$i=$i+1){
+        If($command[$i] -eq " "){
+            $queue.Enqueue($strBuf)
+            $strBuf=""
+        }
+        Else {
+            $strBuf=$strBuf + $command[$i]
+        }
+    }
+    $queue.Enqueue($strBuf)
+    while($queue.Count -gt 0){
+        $queContent=$queue.Dequeue()
+        if($queContent -eq "wa"){
+            $cmdNode=$cmdRoot
+
+        }
+        else{
+            $cmdNode=$cmdNode.GetChild($queContent)
+        }
+    }
+    return $cmdNode
+}
+
+$cmdRoot=CommandInit
+$targetNode=GetCommandNode $cmdRoot "wa files open"
+$ea = [ExecArgs]::new()
+$ea.folderPath="C:\temp"
+$targetNode.Exec($ea)
